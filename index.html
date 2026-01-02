@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pendu - Borne-Incendie</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rye&display=swap');
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: #111;
+    font-family: Arial, sans-serif;
+    color: white;
+  }
+
+  h1 {
+    font-size: 32px;
+    margin-bottom: 20px;
+  }
+
+  #wordDisplay {
+    font-size: 36px;
+    letter-spacing: 10px;
+    margin-bottom: 10px;
+  }
+
+  #triesLeft {
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+
+  #keyboard {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 400px;
+  }
+
+  .key {
+    width: 40px;
+    height: 40px;
+    margin: 5px;
+    text-align: center;
+    line-height: 40px;
+    border: 1px solid #555;
+    border-radius: 5px;
+    cursor: pointer;
+    user-select: none;
+    background: white;
+    color: black;
+    font-weight: bold;
+    transition: all 0.2s;
+  }
+
+  .key.used {
+    background: red;
+    color: white;
+    cursor: default;
+  }
+
+  .key.correct {
+    background: lime;
+    color: black;
+    cursor: default;
+  }
+
+  #hangman {
+    margin: 20px;
+    width: 150px;
+    height: 200px;
+  }
+
+  #winMessage {
+    font-size: 64px;
+    font-family: 'Rye', cursive;
+    color: orange;
+    text-align: center;
+    display: none;
+    position: relative;
+    overflow: visible;
+    text-shadow:
+      0 0 10px #ff6b00,
+      0 0 20px #ff6b00,
+      0 0 30px #ff0000,
+      0 0 40px #ff8c00;
+  }
+
+  .flame {
+    position: absolute;
+    font-size: 16px;
+    color: orange;
+    animation: rise 1s infinite linear;
+    pointer-events: none;
+  }
+
+  @keyframes rise {
+    0% { transform: translate(0,0) scale(1); opacity: 1;}
+    50% { transform: translate(-5px,-20px) scale(1.3); opacity: 0.8;}
+    100% { transform: translate(5px,-40px) scale(1.5); opacity: 0;}
+  }
+
+  span.green {
+    color: lime;
+    font-weight: bold;
+    display: inline-block;
+  }
+
+  span.fixed {
+    color: white;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<h1>Jeu du Pendu</h1>
+<div id="wordDisplay"></div>
+<div id="triesLeft">Essais restants : 5</div>
+<canvas id="hangman"></canvas>
+<div id="keyboard"></div>
+<div id="winMessage">AU FEUUUU</div>
+
+<script>
+// === Configuration ===
+const phrase = "Borne-Incendie"; // tiret entre les mots
+let guessed = [];
+for(let c of phrase){ 
+  guessed.push((c === "-" ? "-" : "_")); // tiret visible, le reste à deviner
+}
+
+let wrongGuesses = 0;
+const maxWrong = 5;
+
+const wordDisplay = document.getElementById("wordDisplay");
+const keyboardDiv = document.getElementById("keyboard");
+const hangmanCanvas = document.getElementById("hangman");
+const ctx = hangmanCanvas.getContext("2d");
+const winMessage = document.getElementById("winMessage");
+const triesLeftDiv = document.getElementById("triesLeft");
+
+ctx.lineWidth = 5;
+ctx.strokeStyle = "white";
+
+// === Clavier ===
+const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const keysMap = {};
+alphabet.split("").forEach(letter => {
+  const key = document.createElement("div");
+  key.textContent = letter;
+  key.classList.add("key");
+  key.addEventListener("click", () => guessLetter(letter, key));
+  keyboardDiv.appendChild(key);
+  keysMap[letter] = key;
+});
+
+// === Pendu sans animation ===
+function drawHangman(stage){
+  ctx.clearRect(0,0,hangmanCanvas.width,hangmanCanvas.height);
+  if(stage>0) ctx.beginPath(), ctx.moveTo(10,190), ctx.lineTo(140,190), ctx.stroke(); // base
+  if(stage>1) ctx.beginPath(), ctx.moveTo(30,190), ctx.lineTo(30,20), ctx.lineTo(100,20), ctx.lineTo(100,40), ctx.stroke(); // poteau
+  if(stage>2) ctx.beginPath(), ctx.arc(100,50,10,0,Math.PI*2), ctx.stroke(); // tête
+  if(stage>3) ctx.beginPath(), ctx.moveTo(100,60), ctx.lineTo(100,110), ctx.stroke(); // corps
+  if(stage>4) ctx.beginPath(), ctx.moveTo(100,70), ctx.lineTo(80,90), ctx.stroke(); // bras gauche
+  if(stage>5) ctx.beginPath(), ctx.moveTo(100,70), ctx.lineTo(120,90), ctx.stroke(); // bras droit
+  if(stage>6) ctx.beginPath(), ctx.moveTo(100,110), ctx.lineTo(80,140), ctx.stroke(); // jambe gauche
+}
+
+// === Affichage mot ===
+function updateWordDisplay(){
+  wordDisplay.innerHTML = guessed.map((c,i)=>{
+    if(phrase[i] === "-") return `<span class="fixed">${c}</span>`; // tiret fixe
+    else if(c==="😺") return "😺";
+    else return `<span class="green">${c}</span>`;
+  }).join("");
+  triesLeftDiv.textContent = "Essais restants : " + (maxWrong - wrongGuesses);
+}
+
+// === Gestion lettres ===
+function guessLetter(letter,keyDiv){
+  if(keyDiv.classList.contains("used") || keyDiv.classList.contains("correct")) return;
+
+  let correct=false;
+  for(let i=0;i<phrase.length;i++){
+    if(phrase[i].toUpperCase()===letter){
+      correct=true;
+      guessed[i]="😺";
+      updateWordDisplay();
+      keysMap[letter].classList.add("correct");
+      setTimeout(()=>{
+        guessed[i] = phrase[i];
+        updateWordDisplay();
+        checkWin();
+      },1000);
+    }
+  }
+
+  if(!correct){
+    keyDiv.classList.add("used");
+    wrongGuesses++;
+    if(wrongGuesses>maxWrong) wrongGuesses=maxWrong;
+    drawHangman(wrongGuesses); // pendu
+    updateWordDisplay();
+    if(wrongGuesses>=maxWrong){
+      alert("Perdu !"); // ne révèle pas la phrase
+    }
+  }
+}
+
+// === Vérifier victoire ===
+function checkWin(){
+  if(!guessed.includes("_") && !guessed.includes("😺")){
+    updateWordDisplay();
+    winMessage.style.display="block";
+    spawnFlamesContinuous();
+  }
+}
+
+// === Flammes continues ===
+function spawnFlamesContinuous(){
+  function createFlame(){
+    const flame = document.createElement("div");
+    flame.className="flame";
+    flame.style.left = Math.random()*winMessage.offsetWidth + "px";
+    flame.style.top = Math.random()*winMessage.offsetHeight + "px";
+    flame.style.fontSize = (12 + Math.random()*20) + "px";
+    flame.style.animationDuration = (0.8 + Math.random()) + "s";
+    winMessage.appendChild(flame);
+    setTimeout(()=> flame.remove(),1000);
+  }
+  setInterval(createFlame,50);
+}
+
+// === Initial ===
+updateWordDisplay();
+drawHangman(0);
+</script>
+
+</body>
+</html>
