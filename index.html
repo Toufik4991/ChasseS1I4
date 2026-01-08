@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Mouse Heist: Moon Power 🌙</title>
+    <title>Mouse Heist: Shining Moon 🌙</title>
     <style>
         :root { --p: #ffcc00; --s: #00ff88; --bg: #050505; }
         body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; text-align: center; }
@@ -23,11 +23,10 @@
         .key { background: #222; padding: 14px 0; border-radius: 8px; font-size: 15px; font-weight: bold; border: 1px solid #444; color: white; }
         .key.used { background: #050505; color: #333; border: 1px solid #111; }
         
-        #shop-msg { font-size: 13px; color: var(--p); font-weight: bold; margin-bottom: 5px; visibility: hidden; animation: blink 1s infinite; }
-        @keyframes blink { 50% { opacity: 0.5; } }
+        #shop-msg { font-size: 13px; color: var(--p); font-weight: bold; margin-bottom: 5px; visibility: hidden; }
 
         #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: none; z-index: 100; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
-        .btn-restart { margin-top: 25px; padding: 18px 40px; background: var(--p); color: black; border: none; border-radius: 12px; font-weight: bold; font-size: 20px; box-shadow: 0 4px 15px rgba(255,204,0,0.4); }
+        .btn-restart { margin-top: 25px; padding: 18px 40px; background: var(--p); color: black; border: none; border-radius: 12px; font-weight: bold; font-size: 20px; }
     </style>
 </head>
 <body>
@@ -46,7 +45,7 @@
     </div>
 
     <div id="pendu-container">
-        <div id="shop-msg">🛒 LA SOURIS FAIT SON MARCHÉ ! (100🧀 / lettre)</div>
+        <div id="shop-msg">🛒 LA SOURIS FAIT SES ACHATS ! (100🧀 / lettre)</div>
         <div id="wordDisplay">_ _ _ _ _ _ _ _ _ _ _ _ _</div>
         <div id="keyboard"></div>
     </div>
@@ -140,23 +139,32 @@
         if(!gameActive) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // La Souris 🐭
-        ctx.font = "34px Arial";
+        // Souris XXL 🐭
+        ctx.font = "52px Arial";
         ctx.textAlign = "center";
-        ctx.fillText("🐭", player.x, player.y + 12);
+        ctx.fillText("🐭", player.x, player.y + 18);
 
         if(phaseCollecte) {
-            // Spawn plus fréquent
-            if(Math.random() < 0.07) {
+            if(Math.random() < 0.06) {
                 const rand = Math.random();
-                let type = '🧀'; // 70% fromage
-                if(rand > 0.7 && rand < 0.9) type = '🔥'; // 20% feu
-                if(rand >= 0.9) type = '🌙'; // 10% lune bonus
+                let type = '🧀';
+                let speed = 2.2 + Math.random() * 1.5;
+
+                // Feu 2 fois moins présent (env. 4-5% de chance totale)
+                if(rand > 0.85 && rand < 0.90) {
+                    type = '🔥';
+                    speed = 1.2 + Math.random() * 1; 
+                }
+                // Lune brillante
+                if(rand >= 0.90) {
+                    type = '🌙';
+                    speed = 2.0 + Math.random() * 1.5;
+                }
 
                 items.push({
-                    x: canvas.width + 30,
-                    y: Math.random() * (canvas.height - 40) + 20,
-                    v: 4 + Math.random() * 5,
+                    x: canvas.width + 50,
+                    y: Math.random() * (canvas.height - 60) + 30,
+                    v: speed,
                     char: type
                 });
             }
@@ -165,34 +173,44 @@
                 let it = items[i];
                 it.x -= it.v;
                 
-                // Effet brillant pour la lune
-                if(it.char === '🌙') ctx.shadowBlur = 10, ctx.shadowColor = "white";
+                ctx.font = it.char === '🔥' ? "42px Arial" : "32px Arial";
+                
+                // Effet de brillance pour la lune
+                if(it.char === '🌙') {
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = "rgba(255, 255, 255, 0.8)";
+                    ctx.fillStyle = "#fff";
+                } else {
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = "white";
+                }
+
                 ctx.fillText(it.char, it.x, it.y);
                 ctx.shadowBlur = 0;
 
                 let dist = Math.hypot(player.x - it.x, player.y - it.y);
-                if(dist < 30) {
+                if(dist < 40) {
                     if(it.char === '🧀') energy += 10;
-                    else if(it.char === '🌙') energy += 50; // Super Bonus Lune
-                    else if(it.char === '🔥') energy = 0;   // Reset total
+                    else if(it.char === '🌙') energy += 50;
+                    else if(it.char === '🔥') energy = 0;
                     items.splice(i, 1);
                     updateUI();
                 }
-                if(it.x < -40) items.splice(i, 1);
+                if(it.x < -60) items.splice(i, 1);
             }
         } else {
-            ctx.fillStyle = "rgba(255,204,0,0.05)";
+            ctx.fillStyle = "rgba(255,255,255,0.05)";
             ctx.fillRect(0,0,canvas.width, canvas.height);
             ctx.fillStyle = "white";
             ctx.font = "bold 16px sans-serif";
-            ctx.fillText("🛒 TEMPS ÉCOULÉ : DÉPENSE TES FROMAGES !", canvas.width/2, canvas.height/2);
+            ctx.fillText("TEMP ÉCOULÉ : CHOISIS TES LETTRES !", canvas.width/2, canvas.height/2);
         }
         requestAnimationFrame(animate);
     }
 
     function checkGameOver() {
-        if (lives <= 0) endGame("TROP DE CHATS... 💀", "Tu as perdu toutes tes vies.");
-        else if (!guessed.includes("_")) endGame("MIAM ! 🧀", "La souris a trouvé la Borne-Incendie !");
+        if (lives <= 0) endGame("BRÛLÉ... 💀", "Plus de vies pour la souris.");
+        else if (!guessed.includes("_")) endGame("MIAM ! 🧀", "La souris a déchiffré le code !");
     }
 
     function updateUI() {
