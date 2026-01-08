@@ -3,40 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Pendu - Flame Collector</title>
+    <title>Mouse Heist: Moon Power 🌙</title>
     <style>
-        :root { --p: #ff4400; --s: #00ff88; }
-        body { margin: 0; background: #050505; color: white; font-family: sans-serif; overflow: hidden; touch-action: none; text-align: center; }
+        :root { --p: #ffcc00; --s: #00ff88; --bg: #050505; }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; text-align: center; }
         
-        /* UI DU HAUT */
-        #top-bar { height: 60px; display: flex; justify-content: space-around; align-items: center; background: #111; border-bottom: 2px solid #222; }
-        .stat { font-weight: bold; font-size: 14px; }
-        .stat span { color: var(--p); font-size: 20px; }
+        #top-bar { height: 75px; display: flex; flex-direction: column; justify-content: center; background: #111; border-bottom: 2px solid #333; }
+        .stats-row { display: flex; justify-content: space-around; font-weight: bold; font-size: 18px; align-items: center; }
+        #timer-bar { height: 6px; background: var(--s); width: 100%; margin-top: 5px; transition: width 1s linear; }
 
-        /* ZONE MINI-JEU */
-        #game-container { position: relative; height: 40vh; background: #000; overflow: hidden; border-bottom: 2px solid #222; }
+        #game-container { position: relative; height: 42vh; background: #000; overflow: hidden; cursor: none; }
         canvas { display: block; width: 100%; height: 100%; }
 
-        /* ZONE PENDU */
-        #pendu-container { height: 60vh; padding: 10px; display: flex; flex-direction: column; justify-content: space-between; }
-        #wordDisplay { font-size: 24px; letter-spacing: 5px; color: var(--s); font-weight: bold; margin: 10px 0; }
+        #pendu-container { height: 48vh; padding: 10px; opacity: 0.4; pointer-events: none; transition: all 0.5s ease; }
+        #pendu-container.active { opacity: 1; pointer-events: auto; background: #0a0a0a; }
         
-        #keyboard { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .key { background: #222; padding: 12px 0; border-radius: 4px; font-size: 14px; font-weight: bold; border: 1px solid #333; }
-        .key.used { opacity: 0.3; pointer-events: none; }
-        .key.locked { color: #555; background: #111; }
+        #wordDisplay { font-size: 24px; letter-spacing: 4px; color: var(--s); font-weight: 800; margin: 15px 0; text-transform: uppercase; }
+        #keyboard { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; max-width: 500px; margin: 0 auto; }
+        .key { background: #222; padding: 14px 0; border-radius: 8px; font-size: 15px; font-weight: bold; border: 1px solid #444; color: white; }
+        .key.used { background: #050505; color: #333; border: 1px solid #111; }
+        
+        #shop-msg { font-size: 13px; color: var(--p); font-weight: bold; margin-bottom: 5px; visibility: hidden; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
 
-        #buy-info { font-size: 12px; color: #aaa; margin-bottom: 5px; }
-        .btn-buy { background: var(--p); color: white; border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; }
-
-        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; z-index: 100; flex-direction: column; justify-content: center; align-items: center; }
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: none; z-index: 100; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
+        .btn-restart { margin-top: 25px; padding: 18px 40px; background: var(--p); color: black; border: none; border-radius: 12px; font-weight: bold; font-size: 20px; box-shadow: 0 4px 15px rgba(255,204,0,0.4); }
     </style>
 </head>
 <body>
 
     <div id="top-bar">
-        <div class="stat">VIES: <span id="lives">6</span></div>
-        <div class="stat">ÉNERGIE: <span id="energy">0</span></div>
+        <div class="stats-row">
+            <div>🧀 <span id="energy">0</span></div>
+            <div id="clock" style="font-family: monospace;">01:30</div>
+            <div>❤️ <span id="lives">6</span></div>
+        </div>
+        <div id="timer-bar"></div>
     </div>
 
     <div id="game-container">
@@ -44,28 +46,26 @@
     </div>
 
     <div id="pendu-container">
-        <div id="buy-info">1 LETTRE = <span style="color:var(--p)">100 ÉNERGIE</span></div>
+        <div id="shop-msg">🛒 LA SOURIS FAIT SON MARCHÉ ! (100🧀 / lettre)</div>
         <div id="wordDisplay">_ _ _ _ _ _ _ _ _ _ _ _ _</div>
         <div id="keyboard"></div>
     </div>
 
     <div id="overlay">
-        <h1 id="res-title"></h1>
-        <button onclick="location.reload()" style="padding:15px 30px; background:var(--p); color:white; border:none; border-radius:10px;">REJOUER</button>
+        <h1 id="res-title" style="font-size: 45px; margin: 10px;"></h1>
+        <div id="res-sub" style="font-size: 20px; color: #aaa;"></div>
+        <button class="btn-restart" onclick="location.reload()">RETOURNER AU NID</button>
     </div>
 
 <script>
-    // CONFIGURATION PENDU
     const phrase = "BORNE-INCENDIE";
     let guessed = Array.from(phrase).map(c => c === "-" ? "-" : "_");
-    let energy = 0;
-    let lives = 6;
-    let gameActive = true;
+    let energy = 0, lives = 6, gameActive = true, phaseCollecte = true;
+    let timeLeft = 90; 
 
-    // CONFIGURATION MINI-JEU
     const canvas = document.getElementById('actionCanvas');
     const ctx = canvas.getContext('2d');
-    let player = { x: 50, y: 50, r: 15 };
+    let player = { x: 100, y: 100 };
     let items = [];
 
     function init() {
@@ -74,8 +74,7 @@
         player.x = canvas.width / 2;
         player.y = canvas.height / 2;
 
-        // Créer clavier
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").forEach(l => {
+        "AZERTYUIOPQSDFGHJKLMWXCVBN".split("").forEach(l => {
             const k = document.createElement('div');
             k.className = "key";
             k.textContent = l;
@@ -84,41 +83,116 @@
         });
 
         updateUI();
+        startTimers();
         animate();
     }
 
-    // INTERACTION MINI-JEU (Drag pour bouger)
-    window.addEventListener('touchmove', e => {
-        if(!gameActive) return;
-        let rect = canvas.getBoundingClientRect();
-        let touch = e.touches[0];
-        if(touch.clientY < rect.bottom) {
-            player.x = touch.clientX;
-            player.y = touch.clientY - rect.top;
-        }
-    });
+    function startTimers() {
+        const timerInt = setInterval(() => {
+            if (!gameActive) { clearInterval(timerInt); return; }
+            timeLeft--;
+            let m = Math.floor(timeLeft / 60);
+            let s = timeLeft % 60;
+            document.getElementById('clock').textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            document.getElementById('timer-bar').style.width = (timeLeft/90)*100 + "%";
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInt);
+                openShop();
+            }
+        }, 1000);
+    }
+
+    function openShop() {
+        phaseCollecte = false;
+        document.getElementById('pendu-container').classList.add('active');
+        document.getElementById('shop-msg').style.visibility = "visible";
+        document.getElementById('timer-bar').style.backgroundColor = "#ffcc00";
+    }
 
     function buyLetter(l, el) {
-        if(energy < 100 || el.classList.contains('used')) return;
+        if (!gameActive || phaseCollecte || energy < 100 || el.classList.contains('used')) return;
         
         energy -= 100;
         el.classList.add('used');
         let found = false;
-        
         for(let i=0; i<phrase.length; i++) {
-            if(phrase[i] === l) {
-                guessed[i] = l;
-                found = true;
-            }
+            if(phrase[i] === l) { guessed[i] = l; found = true; }
         }
 
-        if(!found) {
-            lives--;
-            if(lives <= 0) endGame("BRÛLÉ... 💀");
-        } else if(!guessed.includes("_")) {
-            endGame("VICTOIRE ! 😺");
-        }
+        if(!found) lives--;
+        checkGameOver();
         updateUI();
+    }
+
+    function handleInput(e) {
+        if (!gameActive || !phaseCollecte) return;
+        let rect = canvas.getBoundingClientRect();
+        let t = e.touches ? e.touches[0] : e;
+        player.x = t.clientX;
+        player.y = t.clientY - rect.top;
+    }
+
+    window.addEventListener('touchmove', e => { e.preventDefault(); handleInput(e); }, {passive:false});
+    window.addEventListener('mousemove', handleInput);
+
+    function animate() {
+        if(!gameActive) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // La Souris 🐭
+        ctx.font = "34px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("🐭", player.x, player.y + 12);
+
+        if(phaseCollecte) {
+            // Spawn plus fréquent
+            if(Math.random() < 0.07) {
+                const rand = Math.random();
+                let type = '🧀'; // 70% fromage
+                if(rand > 0.7 && rand < 0.9) type = '🔥'; // 20% feu
+                if(rand >= 0.9) type = '🌙'; // 10% lune bonus
+
+                items.push({
+                    x: canvas.width + 30,
+                    y: Math.random() * (canvas.height - 40) + 20,
+                    v: 4 + Math.random() * 5,
+                    char: type
+                });
+            }
+
+            for(let i = items.length-1; i>=0; i--) {
+                let it = items[i];
+                it.x -= it.v;
+                
+                // Effet brillant pour la lune
+                if(it.char === '🌙') ctx.shadowBlur = 10, ctx.shadowColor = "white";
+                ctx.fillText(it.char, it.x, it.y);
+                ctx.shadowBlur = 0;
+
+                let dist = Math.hypot(player.x - it.x, player.y - it.y);
+                if(dist < 30) {
+                    if(it.char === '🧀') energy += 10;
+                    else if(it.char === '🌙') energy += 50; // Super Bonus Lune
+                    else if(it.char === '🔥') energy = 0;   // Reset total
+                    items.splice(i, 1);
+                    updateUI();
+                }
+                if(it.x < -40) items.splice(i, 1);
+            }
+        } else {
+            ctx.fillStyle = "rgba(255,204,0,0.05)";
+            ctx.fillRect(0,0,canvas.width, canvas.height);
+            ctx.fillStyle = "white";
+            ctx.font = "bold 16px sans-serif";
+            ctx.fillText("🛒 TEMPS ÉCOULÉ : DÉPENSE TES FROMAGES !", canvas.width/2, canvas.height/2);
+        }
+        requestAnimationFrame(animate);
+    }
+
+    function checkGameOver() {
+        if (lives <= 0) endGame("TROP DE CHATS... 💀", "Tu as perdu toutes tes vies.");
+        else if (!guessed.includes("_")) endGame("MIAM ! 🧀", "La souris a trouvé la Borne-Incendie !");
     }
 
     function updateUI() {
@@ -127,53 +201,11 @@
         document.getElementById('wordDisplay').textContent = guessed.join(" ");
     }
 
-    function animate() {
-        if(!gameActive) return;
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.fillRect(0,0,canvas.width, canvas.height);
-
-        // Dessin Joueur (Flamme)
-        ctx.fillStyle = '#ff6600';
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, player.r, 0, Math.PI*2);
-        ctx.fill();
-
-        // Spawn items
-        if(Math.random() < 0.03) {
-            items.push({ 
-                x: canvas.width + 20, 
-                y: Math.random() * canvas.height, 
-                v: 3 + Math.random() * 4, 
-                type: Math.random() > 0.3 ? 'point' : 'bad' 
-            });
-        }
-
-        // Boucle Items
-        for(let i = items.length-1; i>=0; i--) {
-            let it = items[i];
-            it.x -= it.v;
-            
-            ctx.fillStyle = it.type === 'point' ? '#00ff88' : '#00aaff';
-            ctx.beginPath();
-            ctx.arc(it.x, it.y, 8, 0, Math.PI*2);
-            ctx.fill();
-
-            // Collision
-            let dist = Math.hypot(player.x - it.x, player.y - it.y);
-            if(dist < player.r + 8) {
-                if(it.type === 'point') energy += 20;
-                else { lives--; updateUI(); if(lives <= 0) endGame("EXTINCT ! 💀"); }
-                items.splice(i, 1);
-                updateUI();
-            }
-        }
-        requestAnimationFrame(animate);
-    }
-
-    function endGame(txt) {
+    function endGame(title, sub) {
         gameActive = false;
         document.getElementById('overlay').style.display = "flex";
-        document.getElementById('res-title').textContent = txt;
+        document.getElementById('res-title').textContent = title;
+        document.getElementById('res-sub').textContent = sub;
     }
 
     init();
