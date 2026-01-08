@@ -1,243 +1,256 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pendu - Borne-Incendie</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Rye&display=swap');
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Pendu Hardcore - Borne Incendie</title>
+    <style>
+        :root {
+            --primary: #ff4400;
+            --bg: #050505;
+        }
 
-    body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      background: #111;
-      font-family: Arial, sans-serif;
-      color: white;
-      margin: 0;
-    }
+        body {
+            margin: 0;
+            padding: 10px;
+            background: var(--bg);
+            color: white;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
 
-    h1 {
-      font-size: 32px;
-      margin-bottom: 20px;
-    }
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 400px;
+            font-weight: bold;
+            color: var(--primary);
+            text-transform: uppercase;
+            font-size: 13px;
+        }
 
-    #wordDisplay {
-      font-size: 36px;
-      letter-spacing: 10px;
-      margin-bottom: 10px;
-      min-height: 50px;
-    }
+        #timer { color: #fff; background: var(--primary); padding: 2px 8px; border-radius: 4px; }
 
-    #triesLeft {
-      font-size: 20px;
-      margin-bottom: 20px;
-      color: #ff6b00;
-    }
+        canvas {
+            background: #111;
+            border-radius: 15px;
+            border: 2px solid #222;
+            margin: 10px 0;
+            max-height: 20vh;
+            width: auto;
+        }
 
-    #keyboard {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      max-width: 500px;
-    }
+        #wordDisplay {
+            font-size: 26px; /* Plus petit pour mobile car mot long */
+            font-weight: 800;
+            letter-spacing: 4px;
+            margin: 15px 0;
+            min-height: 40px;
+            text-align: center;
+            color: #00ff88;
+            text-transform: uppercase;
+        }
 
-    .key {
-      width: 40px;
-      height: 40px;
-      margin: 5px;
-      text-align: center;
-      line-height: 40px;
-      border: 1px solid #555;
-      border-radius: 5px;
-      cursor: pointer;
-      user-select: none;
-      background: white;
-      color: black;
-      font-weight: bold;
-      transition: all 0.2s;
-    }
+        #keyboard {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 4px;
+            width: 100%;
+            max-width: 500px;
+            margin-top: auto;
+            padding-bottom: 20px;
+        }
 
-    .key.used {
-      background: #ff4444;
-      color: white;
-      cursor: default;
-      opacity: 0.6;
-    }
+        .key {
+            background: #222;
+            color: white;
+            border: 1px solid #333;
+            border-radius: 5px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+        }
 
-    .key.correct {
-      background: #00ff00;
-      color: black;
-      cursor: default;
-    }
+        .key.correct { background: #00ff88 !important; color: black; border-color: #00ff88; }
+        .key.wrong { background: #ff4400 !important; opacity: 0.2; border-color: transparent; }
+        .key.used { pointer-events: none; }
 
-    #hangman {
-      margin: 20px;
-      background: #222;
-      border-radius: 10px;
-    }
+        #msg {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(5,5,5,0.95);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            display: none;
+            border: 2px solid var(--primary);
+            z-index: 100;
+            width: 80%;
+        }
 
-    #winMessage {
-      font-size: 64px;
-      font-family: 'Rye', cursive;
-      color: orange;
-      text-align: center;
-      display: none;
-      position: relative;
-      margin-top: 20px;
-      text-shadow:
-        0 0 10px #ff6b00,
-        0 0 20px #ff6b00,
-        0 0 30px #ff0000,
-        0 0 40px #ff8c00;
-    }
-
-    .flame {
-      position: absolute;
-      pointer-events: none;
-      animation: rise 1s infinite linear;
-      z-index: 10;
-    }
-
-    @keyframes rise {
-      0% { transform: translate(0,0) scale(1); opacity: 1;}
-      100% { transform: translate(0,-50px) scale(1.5); opacity: 0;}
-    }
-
-    span.green { color: lime; font-weight: bold; }
-    span.fixed { color: white; font-weight: bold; margin: 0 5px; }
-  </style>
+        .shake { animation: shake 0.3s; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+    </style>
 </head>
 <body>
 
-<h1>Jeu du Pendu</h1>
-<div id="wordDisplay"></div>
-<div id="triesLeft">Essais restants : 6</div>
-<canvas id="hangman" width="150" height="200"></canvas>
-<div id="keyboard"></div>
-<div id="winMessage">AU FEUUUU ! 🔥</div>
+    <div class="stats">
+        <div>VIE: <span id="tries">6</span></div>
+        <div id="timer-box">VITE: <span id="timer">10</span>s</div>
+    </div>
+
+    <canvas id="hangman" width="200" height="200"></canvas>
+
+    <div id="wordDisplay"></div>
+
+    <div id="keyboard"></div>
+
+    <div id="msg">
+        <h2 id="msgTitle" style="color: var(--primary); font-size: 30px; margin: 0;"></h2>
+        <p id="msgSub" style="font-size: 18px; margin: 15px 0;"></p>
+        <button onclick="location.reload()" style="padding: 12px 25px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px;">RECOMMENCER</button>
+    </div>
 
 <script>
-// === Configuration ===
-const phrase = "Borne-Incendie"; 
-let guessed = [];
-for(let c of phrase){ 
-  guessed.push((c === "-" ? "-" : "_")); 
-}
-
-let wrongGuesses = 0;
-const maxWrong = 6; // Harmonisé avec le nombre d'étapes du dessin
-
-const wordDisplay = document.getElementById("wordDisplay");
-const keyboardDiv = document.getElementById("keyboard");
-const hangmanCanvas = document.getElementById("hangman");
-const ctx = hangmanCanvas.getContext("2d");
-const winMessage = document.getElementById("winMessage");
-const triesLeftDiv = document.getElementById("triesLeft");
-
-ctx.lineWidth = 5;
-ctx.strokeStyle = "white";
-
-// === Clavier ===
-const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const keysMap = {};
-alphabet.split("").forEach(letter => {
-  const key = document.createElement("div");
-  key.textContent = letter;
-  key.classList.add("key");
-  key.addEventListener("click", () => guessLetter(letter, key));
-  keyboardDiv.appendChild(key);
-  keysMap[letter] = key;
-});
-
-// === Dessin du Pendu ===
-function drawHangman(stage){
-  ctx.clearRect(0,0,hangmanCanvas.width,hangmanCanvas.height);
-  ctx.beginPath();
-  if(stage > 0) { ctx.moveTo(10,190); ctx.lineTo(140,190); } // Base
-  if(stage > 1) { ctx.moveTo(30,190); ctx.lineTo(30,20); ctx.lineTo(100,20); ctx.lineTo(100,40); } // Potence
-  if(stage > 2) { ctx.stroke(); ctx.beginPath(); ctx.arc(100,50,15,0,Math.PI*2); } // Tête
-  if(stage > 3) { ctx.moveTo(100,65); ctx.lineTo(100,120); } // Corps
-  if(stage > 4) { ctx.moveTo(100,80); ctx.lineTo(70,100); ctx.moveTo(100,80); ctx.lineTo(130,100); } // Bras
-  if(stage > 5) { ctx.moveTo(100,120); ctx.lineTo(75,160); ctx.moveTo(100,120); ctx.lineTo(125,160); } // Jambes
-  ctx.stroke();
-}
-
-// === Affichage mot ===
-function updateWordDisplay(){
-  wordDisplay.innerHTML = guessed.map((c,i)=>{
-    if(phrase[i] === "-") return `<span class="fixed">-</span>`;
-    else if(c === "😺") return "😺";
-    else return `<span class="green">${c}</span>`;
-  }).join("");
-  triesLeftDiv.textContent = "Essais restants : " + (maxWrong - wrongGuesses);
-}
-
-// === Gestion lettres ===
-function guessLetter(letter, keyDiv){
-  if(keyDiv.classList.contains("used") || keyDiv.classList.contains("correct") || wrongGuesses >= maxWrong) return;
-
-  let correct = false;
-  for(let i=0; i < phrase.length; i++){
-    if(phrase[i].toUpperCase() === letter){
-      correct = true;
-      guessed[i] = "😺";
-      keyDiv.classList.add("correct");
-      
-      // Petit effet : affiche le chat puis la lettre
-      setTimeout(((index) => {
-        return () => {
-          guessed[index] = phrase[index];
-          updateWordDisplay();
-          checkWin();
-        };
-      })(i), 600);
+    const phrase = "BORNE-INCENDIE";
+    let guessed = [];
+    // Initialisation avec le tiret déjà visible
+    for(let char of phrase) {
+        guessed.push(char === "-" ? "-" : "_");
     }
-  }
 
-  if(!correct){
-    keyDiv.classList.add("used");
-    wrongGuesses++;
-    drawHangman(wrongGuesses);
-    if(wrongGuesses >= maxWrong){
-      setTimeout(() => alert("Perdu ! La réponse était : " + phrase), 200);
+    let wrongCount = 0;
+    const maxWrong = 6;
+    let timeLeft = 10;
+    let gameActive = true;
+    let timerInterval;
+
+    const canvas = document.getElementById("hangman");
+    const ctx = canvas.getContext("2d");
+    const wordDisplay = document.getElementById("wordDisplay");
+    const keyboard = document.getElementById("keyboard");
+    const triesDisplay = document.getElementById("tries");
+    const timerDisplay = document.getElementById("timer");
+
+    const layout = "AZERTYUIOPQSDFGHJKLMWXCVBN";
+
+    function init() {
+        layout.split("").forEach(letter => {
+            const btn = document.createElement("div");
+            btn.className = "key";
+            btn.textContent = letter;
+            btn.onclick = () => handleGuess(letter, btn);
+            keyboard.appendChild(btn);
+        });
+
+        updateUI();
+        draw(0);
+        startTimer();
     }
-  }
-  updateWordDisplay();
-}
 
-// === Vérifier victoire ===
-function checkWin(){
-  if(!guessed.includes("_") && !guessed.includes("😺")){
-    winMessage.style.display = "block";
-    keyboardDiv.style.pointerEvents = "none";
-    spawnFlamesContinuous();
-  }
-}
+    function startTimer() {
+        clearInterval(timerInterval);
+        timeLeft = 10;
+        timerDisplay.textContent = timeLeft;
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            timerDisplay.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                handleWrong(); 
+            }
+        }, 1000);
+    }
 
-// === Effet Flammes ===
-function spawnFlamesContinuous(){
-  function createFlame(){
-    const flame = document.createElement("div");
-    flame.className = "flame";
-    flame.innerHTML = "🔥";
-    flame.style.left = Math.random() * winMessage.offsetWidth + "px";
-    flame.style.top = Math.random() * winMessage.offsetHeight + "px";
-    flame.style.fontSize = (15 + Math.random() * 20) + "px";
-    flame.style.animationDuration = (0.5 + Math.random()) + "s";
-    winMessage.appendChild(flame);
-    setTimeout(() => flame.remove(), 1000);
-  }
-  setInterval(createFlame, 100);
-}
+    function handleGuess(letter, btn) {
+        if (!gameActive || btn.classList.contains("used")) return;
+        
+        btn.classList.add("used");
+        let found = false;
 
-// Initialisation
-updateWordDisplay();
-drawHangman(0);
+        for (let i = 0; i < phrase.length; i++) {
+            if (phrase[i] === letter) {
+                guessed[i] = letter;
+                found = true;
+            }
+        }
+
+        if (found) {
+            btn.classList.add("correct");
+            if (!guessed.includes("_")) win();
+            else startTimer();
+        } else {
+            btn.classList.add("wrong");
+            handleWrong();
+        }
+        updateUI();
+    }
+
+    function handleWrong() {
+        wrongCount++;
+        canvas.classList.add("shake");
+        setTimeout(() => canvas.classList.remove("shake"), 300);
+        
+        draw(wrongCount);
+        if (wrongCount >= maxWrong) lose();
+        else startTimer();
+        updateUI();
+    }
+
+    function updateUI() {
+        wordDisplay.textContent = guessed.join(" ");
+        triesDisplay.textContent = maxWrong - wrongCount;
+    }
+
+    function draw(stage) {
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 5;
+        ctx.lineCap = "round";
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.beginPath();
+        if (stage > 0) { ctx.moveTo(20, 180); ctx.lineTo(180, 180); } 
+        if (stage > 1) { ctx.moveTo(50, 180); ctx.lineTo(50, 20); ctx.lineTo(130, 20); ctx.lineTo(130, 40); } 
+        if (stage > 2) { ctx.stroke(); ctx.beginPath(); ctx.arc(130, 55, 15, 0, Math.PI * 2); } 
+        if (stage > 3) { ctx.moveTo(130, 70); ctx.lineTo(130, 120); } 
+        if (stage > 4) { ctx.moveTo(130, 80); ctx.lineTo(100, 100); ctx.moveTo(130, 80); ctx.lineTo(160, 100); } 
+        if (stage > 5) { ctx.moveTo(130, 120); ctx.lineTo(100, 160); ctx.moveTo(130, 120); ctx.lineTo(160, 160); } 
+        ctx.stroke();
+    }
+
+    function win() {
+        gameActive = false;
+        clearInterval(timerInterval);
+        showMsg("AU FEUUU ! 🔥", "Borne trouvée ! 😺");
+    }
+
+    function lose() {
+        gameActive = false;
+        clearInterval(timerInterval);
+        showMsg("BRÛLÉ... 💀", "C'était : BORNE-INCENDIE");
+    }
+
+    function showMsg(title, sub) {
+        const m = document.getElementById("msg");
+        m.style.display = "block";
+        document.getElementById("msgTitle").textContent = title;
+        document.getElementById("msgSub").textContent = sub;
+    }
+
+    init();
 </script>
-
 </body>
 </html>
-
