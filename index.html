@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Mouse Heist: Shining Moon 🌙</title>
+    <title>Mouse Heist: Trap & Moon 🧀</title>
     <style>
-        :root { --p: #ffcc00; --s: #00ff88; --bg: #050505; }
+        :root { --p: #ffcc00; --s: #00ff88; --danger: #ff4400; --bg: #050505; }
         body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; text-align: center; }
         
         #top-bar { height: 75px; display: flex; flex-direction: column; justify-content: center; background: #111; border-bottom: 2px solid #333; }
@@ -15,7 +15,7 @@
         #game-container { position: relative; height: 42vh; background: #000; overflow: hidden; cursor: none; }
         canvas { display: block; width: 100%; height: 100%; }
 
-        #pendu-container { height: 48vh; padding: 10px; opacity: 0.4; pointer-events: none; transition: all 0.5s ease; }
+        #pendu-container { height: 48vh; padding: 10px; opacity: 0.4; pointer-events: none; transition: all 0.5s ease; position: relative; }
         #pendu-container.active { opacity: 1; pointer-events: auto; background: #0a0a0a; }
         
         #wordDisplay { font-size: 24px; letter-spacing: 4px; color: var(--s); font-weight: 800; margin: 15px 0; text-transform: uppercase; }
@@ -23,7 +23,14 @@
         .key { background: #222; padding: 14px 0; border-radius: 8px; font-size: 15px; font-weight: bold; border: 1px solid #444; color: white; }
         .key.used { background: #050505; color: #333; border: 1px solid #111; }
         
-        #shop-msg { font-size: 13px; color: var(--p); font-weight: bold; margin-bottom: 5px; visibility: hidden; }
+        #shop-alert { 
+            position: absolute; top: -30px; left: 50%; transform: translateX(-50%);
+            background: var(--danger); color: white; padding: 5px 15px; border-radius: 20px;
+            font-size: 12px; font-weight: bold; display: none; white-space: nowrap;
+            animation: pulse 0.5s infinite alternate;
+        }
+
+        @keyframes pulse { from { opacity: 1; } to { opacity: 0.5; } }
 
         #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: none; z-index: 100; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
         .btn-restart { margin-top: 25px; padding: 18px 40px; background: var(--p); color: black; border: none; border-radius: 12px; font-weight: bold; font-size: 20px; }
@@ -35,7 +42,7 @@
         <div class="stats-row">
             <div>🧀 <span id="energy">0</span></div>
             <div id="clock" style="font-family: monospace;">01:30</div>
-            <div>❤️ <span id="lives">6</span></div>
+            <div>❤️ <span id="lives">10</span></div>
         </div>
         <div id="timer-bar"></div>
     </div>
@@ -45,7 +52,7 @@
     </div>
 
     <div id="pendu-container">
-        <div id="shop-msg">🛒 LA SOURIS FAIT SES ACHATS ! (100🧀 / lettre)</div>
+        <div id="shop-alert">🚨 VITE ! 25s POUR ACHETER !</div>
         <div id="wordDisplay">_ _ _ _ _ _ _ _ _ _ _ _ _</div>
         <div id="keyboard"></div>
     </div>
@@ -53,13 +60,13 @@
     <div id="overlay">
         <h1 id="res-title" style="font-size: 45px; margin: 10px;"></h1>
         <div id="res-sub" style="font-size: 20px; color: #aaa;"></div>
-        <button class="btn-restart" onclick="location.reload()">RETOURNER AU NID</button>
+        <button class="btn-restart" onclick="location.reload()">RECOMMENCER</button>
     </div>
 
 <script>
     const phrase = "BORNE-INCENDIE";
     let guessed = Array.from(phrase).map(c => c === "-" ? "-" : "_");
-    let energy = 0, lives = 6, gameActive = true, phaseCollecte = true;
+    let energy = 0, lives = 10, gameActive = true, phaseCollecte = true;
     let timeLeft = 90; 
 
     const canvas = document.getElementById('actionCanvas');
@@ -82,43 +89,52 @@
         });
 
         updateUI();
-        startTimers();
+        startPhase1();
         animate();
     }
 
-    function startTimers() {
+    function startPhase1() {
         const timerInt = setInterval(() => {
             if (!gameActive) { clearInterval(timerInt); return; }
             timeLeft--;
-            let m = Math.floor(timeLeft / 60);
-            let s = timeLeft % 60;
-            document.getElementById('clock').textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            updateClock(timeLeft);
             document.getElementById('timer-bar').style.width = (timeLeft/90)*100 + "%";
+            if (timeLeft <= 0) { clearInterval(timerInt); startShopPhase(); }
+        }, 1000);
+    }
 
+    function startShopPhase() {
+        phaseCollecte = false;
+        timeLeft = 25;
+        document.getElementById('pendu-container').classList.add('active');
+        document.getElementById('shop-alert').style.display = "block";
+        document.getElementById('timer-bar').style.backgroundColor = "var(--danger)";
+        const shopTimer = setInterval(() => {
+            if (!gameActive) { clearInterval(shopTimer); return; }
+            timeLeft--;
+            updateClock(timeLeft);
+            document.getElementById('timer-bar').style.width = (timeLeft/25)*100 + "%";
             if (timeLeft <= 0) {
-                clearInterval(timerInt);
-                openShop();
+                clearInterval(shopTimer);
+                if (guessed.includes("_")) endGame("TEMPS ÉCOULÉ ! ⌛", "Dépêche-toi la prochaine fois !");
             }
         }, 1000);
     }
 
-    function openShop() {
-        phaseCollecte = false;
-        document.getElementById('pendu-container').classList.add('active');
-        document.getElementById('shop-msg').style.visibility = "visible";
-        document.getElementById('timer-bar').style.backgroundColor = "#ffcc00";
+    function updateClock(t) {
+        let m = Math.floor(t / 60);
+        let s = t % 60;
+        document.getElementById('clock').textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
     }
 
     function buyLetter(l, el) {
         if (!gameActive || phaseCollecte || energy < 100 || el.classList.contains('used')) return;
-        
         energy -= 100;
         el.classList.add('used');
         let found = false;
         for(let i=0; i<phrase.length; i++) {
             if(phrase[i] === l) { guessed[i] = l; found = true; }
         }
-
         if(!found) lives--;
         checkGameOver();
         updateUI();
@@ -145,46 +161,27 @@
         ctx.fillText("🐭", player.x, player.y + 18);
 
         if(phaseCollecte) {
-            if(Math.random() < 0.06) {
+            if(Math.random() < 0.05) { // Moins d'objets globalement
                 const rand = Math.random();
                 let type = '🧀';
                 let speed = 2.2 + Math.random() * 1.5;
 
-                // Feu 2 fois moins présent (env. 4-5% de chance totale)
-                if(rand > 0.85 && rand < 0.90) {
-                    type = '🔥';
-                    speed = 1.2 + Math.random() * 1; 
-                }
-                // Lune brillante
-                if(rand >= 0.90) {
-                    type = '🌙';
-                    speed = 2.0 + Math.random() * 1.5;
-                }
+                if(rand > 0.6 && rand < 0.75) { type = '🪤'; speed = 2.0; } // Tapette
+                else if(rand > 0.88 && rand < 0.93) { type = '🔥'; speed = 1.2; } // Feu rare
+                else if(rand >= 0.93) { type = '🌙'; speed = 2.2; } // Lune très rare
+                else if(rand > 0.4) { type = '🧀'; } // Fromage
 
-                items.push({
-                    x: canvas.width + 50,
-                    y: Math.random() * (canvas.height - 60) + 30,
-                    v: speed,
-                    char: type
-                });
+                items.push({ x: canvas.width + 50, y: Math.random() * (canvas.height - 60) + 30, v: speed, char: type });
             }
 
             for(let i = items.length-1; i>=0; i--) {
                 let it = items[i];
                 it.x -= it.v;
                 
-                ctx.font = it.char === '🔥' ? "42px Arial" : "32px Arial";
+                // Taille Lune +25%
+                ctx.font = it.char === '🌙' ? "44px Arial" : (it.char === '🔥' || it.char === '🪤' ? "40px Arial" : "32px Arial");
                 
-                // Effet de brillance pour la lune
-                if(it.char === '🌙') {
-                    ctx.shadowBlur = 20;
-                    ctx.shadowColor = "rgba(255, 255, 255, 0.8)";
-                    ctx.fillStyle = "#fff";
-                } else {
-                    ctx.shadowBlur = 0;
-                    ctx.fillStyle = "white";
-                }
-
+                if(it.char === '🌙') { ctx.shadowBlur = 20; ctx.shadowColor = "white"; }
                 ctx.fillText(it.char, it.x, it.y);
                 ctx.shadowBlur = 0;
 
@@ -193,24 +190,19 @@
                     if(it.char === '🧀') energy += 10;
                     else if(it.char === '🌙') energy += 50;
                     else if(it.char === '🔥') energy = 0;
+                    else if(it.char === '🪤') energy = Math.max(0, energy - 20);
                     items.splice(i, 1);
                     updateUI();
                 }
                 if(it.x < -60) items.splice(i, 1);
             }
-        } else {
-            ctx.fillStyle = "rgba(255,255,255,0.05)";
-            ctx.fillRect(0,0,canvas.width, canvas.height);
-            ctx.fillStyle = "white";
-            ctx.font = "bold 16px sans-serif";
-            ctx.fillText("TEMP ÉCOULÉ : CHOISIS TES LETTRES !", canvas.width/2, canvas.height/2);
         }
         requestAnimationFrame(animate);
     }
 
     function checkGameOver() {
-        if (lives <= 0) endGame("BRÛLÉ... 💀", "Plus de vies pour la souris.");
-        else if (!guessed.includes("_")) endGame("MIAM ! 🧀", "La souris a déchiffré le code !");
+        if (lives <= 0) endGame("Oups plus de vie", "La souris est fatiguée...");
+        else if (!guessed.includes("_")) endGame("VICTOIRE ! 🧀", "Borne-Incendie trouvée !");
     }
 
     function updateUI() {
