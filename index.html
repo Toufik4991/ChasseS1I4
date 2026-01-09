@@ -3,41 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Mouse Heist: Final Edition</title>
+    <title>Mouse Heist: Extreme Edition 🧀</title>
     <style>
-        :root { --p: #ffcc00; --s: #00ff88; --danger: #ff4400; --bg: #050505; }
-        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; overflow: hidden; touch-action: none; text-align: center; }
+        :root { --p: #ffcc00; --s: #00ff88; --danger: #ff3300; --bg: #050505; }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Arial Black', sans-serif; overflow: hidden; touch-action: none; }
         
-        #phase-header { background: var(--p); color: black; font-weight: 900; font-size: 16px; padding: 10px; text-transform: uppercase; border-bottom: 2px solid #000; }
-        #top-bar { height: 60px; display: flex; justify-content: space-around; align-items: center; background: #111; }
-        .stat { font-weight: bold; font-size: 20px; }
-        #timer-bar { height: 8px; background: var(--s); width: 100%; transition: width 1s linear; }
+        #phase-header { background: var(--p); color: black; font-weight: 900; font-size: 16px; padding: 12px; text-align: center; text-transform: uppercase; border-bottom: 3px solid #000; }
+        #top-bar { height: 65px; display: flex; justify-content: space-around; align-items: center; background: #151515; border-bottom: 1px solid #333; }
+        .stat { font-weight: bold; font-size: 22px; display: flex; align-items: center; gap: 5px; }
+        #timer-bar { height: 10px; background: var(--s); width: 100%; transition: width 1s linear; }
 
-        /* PHASE 1: JEU SEULEMENT */
-        #game-area { position: relative; height: 75vh; background: #000; display: block; }
+        /* PHASE 1: JEU */
+        #game-area { position: relative; height: 78vh; background: radial-gradient(circle, #111 0%, #000 100%); display: block; }
         canvas { display: block; width: 100%; height: 100%; }
 
-        /* PHASE 2: SHOP SEULEMENT */
-        #shop-area { position: relative; height: 75vh; display: none; padding: 15px; flex-direction: column; justify-content: center; }
+        /* PHASE 2: SHOP */
+        #shop-area { position: relative; height: 78vh; display: none; padding: 10px; flex-direction: column; align-items: center; justify-content: flex-start; }
+        #wordDisplay { font-size: 42px; letter-spacing: 10px; color: var(--s); font-weight: 900; margin: 40px 0; text-shadow: 0 0 15px rgba(0,255,136,0.5); }
         
-        #wordDisplay { font-size: 35px; letter-spacing: 8px; color: var(--s); font-weight: 900; margin-bottom: 30px; }
-        
-        #keyboard { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; max-width: 500px; margin: 0 auto; }
-        .key { background: #222; padding: 15px 0; border-radius: 8px; font-size: 18px; font-weight: bold; border: 2px solid #444; color: white; }
-        .key.used { background: #111; color: #333; border: 1px solid #222; pointer-events: none; }
+        /* CLAVIER XXL */
+        #keyboard { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; width: 95%; margin-top: 20px; }
+        .key { background: #222; height: 60px; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 22px; font-weight: 900; border: 3px solid #444; color: white; box-shadow: 0 4px 0 #000; }
+        .key:active { transform: translateY(2px); box-shadow: none; background: var(--p); color: black; }
+        .key.used { background: #111; color: #444; border: 2px solid #222; pointer-events: none; box-shadow: none; }
 
-        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: none; z-index: 100; flex-direction: column; justify-content: center; align-items: center; }
-        .btn-restart { margin-top: 25px; padding: 20px 40px; background: var(--p); color: black; border: none; border-radius: 12px; font-weight: bold; font-size: 20px; }
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); display: none; z-index: 100; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        .btn-restart { margin-top: 30px; padding: 20px 50px; background: var(--p); color: black; border: none; border-radius: 15px; font-weight: 900; font-size: 24px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div id="phase-header">PHASE 1 : RÉCOLTE DES POINTS 🧀</div>
+    <div id="phase-header">PHASE 1 : RÉCOLTE (45s) 🧀</div>
     
     <div id="top-bar">
-        <div class="stat">❤️ <span id="lives">10</span></div>
-        <div class="stat" id="clock">01:00</div>
-        <div class="stat">🧀 <span id="energy">0</span></div>
+        <div class="stat" style="color:var(--danger)">❤️ <span id="lives">4</span></div>
+        <div class="stat" id="clock" style="font-family: monospace;">00:45</div>
+        <div class="stat" style="color:var(--p)">🧀 <span id="energy">0</span></div>
     </div>
     <div id="timer-bar"></div>
 
@@ -46,26 +47,25 @@
     </div>
 
     <div id="shop-area">
-        <div style="color:var(--p); margin-bottom: 10px; font-weight: bold;">DEPENSE TES FROMAGES (100 / lettre)</div>
         <div id="wordDisplay">_ _ _ _ _ _ _ _ _ _ _ _ _</div>
         <div id="keyboard"></div>
     </div>
 
     <div id="overlay">
-        <h1 id="res-title" style="font-size: 35px;"></h1>
-        <div id="res-sub" style="font-size: 20px; color: #aaa;"></div>
-        <button class="btn-restart" onclick="location.reload()">RECOMMENCER</button>
+        <h1 id="res-title" style="font-size: 40px; margin: 10px;"></h1>
+        <div id="res-sub" style="font-size: 22px; color: #ccc;"></div>
+        <button class="btn-restart" onclick="location.reload()">REJOUER</button>
     </div>
 
 <script>
     const phrase = "BORNE-INCENDIE";
     let guessed = Array.from(phrase).map(c => c === "-" ? "-" : "_");
-    let energy = 0, lives = 10, gameActive = true, phaseCollecte = true;
-    let timeLeft = 60; 
+    let energy = 0, lives = 4, gameActive = true, phaseCollecte = true;
+    let timeLeft = 45; 
 
     const canvas = document.getElementById('actionCanvas');
     const ctx = canvas.getContext('2d');
-    let player = { x: 100, y: 100 };
+    let player = { x: 100, y: 100, size: 65 }; // Souris réduite de 10% (75 -> 65)
     let items = [];
 
     function init() {
@@ -74,7 +74,6 @@
         player.x = canvas.width / 2;
         player.y = canvas.height / 2;
 
-        // Génération Clavier A-Z Complet
         const alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         alpha.split("").forEach(l => {
             const k = document.createElement('div');
@@ -94,7 +93,7 @@
             if (!gameActive) { clearInterval(timerInt); return; }
             timeLeft--;
             updateClock(timeLeft);
-            document.getElementById('timer-bar').style.width = (timeLeft/60)*100 + "%";
+            document.getElementById('timer-bar').style.width = (timeLeft/45)*100 + "%";
             if (timeLeft <= 0) { clearInterval(timerInt); startShopPhase(); }
         }, 1000);
     }
@@ -102,10 +101,9 @@
     function startShopPhase() {
         phaseCollecte = false;
         timeLeft = 25;
-        // Bascule visuelle radicale
         document.getElementById('game-area').style.display = "none";
         document.getElementById('shop-area').style.display = "flex";
-        document.getElementById('phase-header').textContent = "PHASE 2 : ACHAT DES LETTRES 🛒";
+        document.getElementById('phase-header').textContent = "PHASE 2 : BOUTIQUE (25s) 🛒";
         document.getElementById('phase-header').style.background = "var(--s)";
         document.getElementById('timer-bar').style.backgroundColor = "var(--danger)";
         
@@ -116,14 +114,13 @@
             document.getElementById('timer-bar').style.width = (timeLeft/25)*100 + "%";
             if (timeLeft <= 0) {
                 clearInterval(shopTimer);
-                if (guessed.includes("_")) endGame("TEMPS ÉCOULÉ ! ⌛", "Tu n'as pas été assez rapide.");
+                if (guessed.includes("_")) endGame("TEMPS ÉCOULÉ ! ⌛", "Trop lent... 🌝");
             }
         }, 1000);
     }
 
     function updateClock(t) {
-        let s = t % 60;
-        document.getElementById('clock').textContent = `00:${s.toString().padStart(2,'0')}`;
+        document.getElementById('clock').textContent = `00:${t.toString().padStart(2,'0')}`;
     }
 
     function buyLetter(l, el) {
@@ -154,18 +151,20 @@
         if(!gameActive || !phaseCollecte) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        ctx.font = "75px Arial"; // Souris encore plus grosse pour Phase 1
+        // Souris
+        ctx.font = player.size + "px Arial";
         ctx.textAlign = "center";
-        ctx.fillText("🐭", player.x, player.y + 25);
+        ctx.fillText("🐭", player.x, player.y + 20);
 
-        if(Math.random() < 0.05) {
+        // -15% de fromages (probabilité baissée)
+        if(Math.random() < 0.042) {
             const rand = Math.random();
             let type = '🧀';
-            let speed = 2.2 + Math.random() * 1.5;
+            let speed = 2.5 + Math.random() * 2;
 
-            if(rand > 0.90 && rand < 0.94) { type = '🪤'; speed = 2.0; } // Rare
-            else if(rand > 0.98) { type = '💀'; speed = 0.7; } // Ultra rare et lent
-            else if(rand > 0.94) { type = '🌙'; speed = 2.2; } // Rare
+            if(rand > 0.88 && rand < 0.94) { type = '🪤'; speed = 2.5; } 
+            else if(rand > 0.97) { type = '💀'; speed = 1.25; } // +25% vitesse tête de mort
+            else if(rand > 0.93) { type = '🌙'; speed = 4.5; } // +50% vitesse lune
             else { type = '🧀'; }
 
             items.push({ x: canvas.width + 50, y: Math.random() * (canvas.height - 100) + 50, v: speed, char: type });
@@ -174,13 +173,15 @@
         for(let i = items.length-1; i>=0; i--) {
             let it = items[i];
             it.x -= it.v;
-            ctx.font = it.char === '🌙' ? "55px Arial" : "40px Arial";
-            if(it.char === '🌙') { ctx.shadowBlur = 25; ctx.shadowColor = "white"; }
+            
+            // Taille Lune +25%
+            ctx.font = it.char === '🌙' ? "56px Arial" : "44px Arial";
+            if(it.char === '🌙') { ctx.shadowBlur = 30; ctx.shadowColor = "white"; }
             ctx.fillText(it.char, it.x, it.y);
             ctx.shadowBlur = 0;
 
             let dist = Math.hypot(player.x - it.x, player.y - it.y);
-            if(dist < 50) {
+            if(dist < 45) {
                 if(it.char === '🧀') energy += 10;
                 else if(it.char === '🌙') energy += 50;
                 else if(it.char === '💀') energy = 0;
@@ -194,8 +195,8 @@
     }
 
     function checkGameOver() {
-        if (lives <= 0) endGame("Oups plus de vie", "La souris a échoué.");
-        else if (!guessed.includes("_")) endGame("VICTOIRE ! 🧀", "Le mot est complet !");
+        if (lives <= 0) endGame("Oups plus de vie", "La souris a échoué... 🌝");
+        else if (!guessed.includes("_")) endGame("VICTOIRE ! 🧀", "Le fromage est à toi !");
     }
 
     function updateUI() {
