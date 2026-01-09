@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Mouse Heist: Final Edition</title>
+    <title>Mouse Heist: Super Skull Edition</title>
     <style>
         :root { --p: #ffcc00; --s: #00ff88; --danger: #ff3300; --bg: #050505; }
         body { margin: 0; background: var(--bg); color: white; font-family: 'Arial Black', sans-serif; overflow: hidden; touch-action: none; }
@@ -147,10 +147,10 @@
             const rand = Math.random();
             let type = '🧀', speed = 2.5 + Math.random() * 2, size = 44, isSuper = false;
 
-            // Vitesse augmentée de 7% (ex: 1.1 -> 1.18 / 1.25 -> 1.34)
-            if(rand > 0.96) { type = '💀'; speed = 1.18; size = 85; isSuper = true; } 
-            else if(rand > 0.88) { type = '💀'; speed = 1.34; size = 45; } 
-            else if(rand > 0.83) { type = '🌙'; speed = 4.8; size = 56; }
+            // QUE LES SUPERS TETES DE MORT (très rares mais fatales)
+            if(rand > 0.95) { type = '💀'; speed = 1.18; size = 85; isSuper = true; } 
+            else if(rand > 0.85) { type = '🌙'; speed = 4.8; size = 56; }
+            else { type = '🧀'; speed = 2.5 + Math.random() * 2; }
 
             items.push({ x: canvas.width + 100, y: Math.random() * (canvas.height - 100) + 50, v: speed, char: type, size: size, super: isSuper });
         }
@@ -171,13 +171,12 @@
 
             let dist = Math.hypot(player.x - it.x, player.y - it.y);
             if(dist < it.size * 0.6) {
-                if(it.char === '🧀') energy += 10;
+                if(it.char === '🧀') energy += 15; // Fromage à 15 pts
                 else if(it.char === '🌙') energy += 50;
                 else if(it.super) { 
                     endGame("ATTENTION VOYONS !", "Tu ne vois pas que c'est une tête de mort ! La vie est si précieuse..."); 
                     return; 
                 }
-                else if(it.char === '💀') energy = 0;
                 items.splice(i, 1); updateUI();
             }
             if(it.x < -100) items.splice(i, 1);
@@ -211,4 +210,3 @@
 </script>
 </body>
 </html>
-
